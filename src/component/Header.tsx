@@ -37,7 +37,9 @@ const Header: React.FC<HeaderProps> = ({
     setOrder(newOrder);
     onOrderChange(newOrder);
   };
-  
+
+  // currently using this
+  //Use When if we want PDF depends on screen size
   const handleDownloadPDF = async () => {
     try {
       const canvas = await html2canvas(document.body);
@@ -48,6 +50,55 @@ const Header: React.FC<HeaderProps> = ({
         format: [canvas.width, canvas.height],
       });
 
+      pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+      pdf.save("screenshot.pdf");
+    } catch (error) {
+      console.error("Error capturing screenshot:", error);
+    }
+  };
+
+  // Try this also
+  //Use When PDF is not depend on screen size (Consistent PDF)
+  const handleDownloadPDFSameForAll = async () => {
+    try {
+      // Clone the body into a fixed-width container for desktop-like dimensions
+      const bodyClone = document.body.cloneNode(true) as HTMLElement;
+      const wrapper = document.createElement("div");
+      wrapper.style.width = "1920px"; // Fixed desktop width
+      wrapper.style.position = "absolute";
+      wrapper.style.top = "0";
+      wrapper.style.left = "0";
+      wrapper.style.zIndex = "-1"; // Hidden from view
+      wrapper.style.background = "white"; // Clean white background
+      wrapper.style.margin = "0";
+      wrapper.style.padding = "0";
+      wrapper.style.boxSizing = "border-box";
+      wrapper.appendChild(bodyClone);
+
+      // Append wrapper to the DOM temporarily
+      document.body.appendChild(wrapper);
+
+      // Use html2canvas to capture the wrapper
+      const canvas = await html2canvas(wrapper, {
+        width: 1920, // Desktop-like width
+        height: bodyClone.scrollHeight, // Full content height
+        scrollX: 0,
+        scrollY: 0,
+        useCORS: true, // Handle external assets
+      });
+
+      // Cleanup: Remove the wrapper from DOM
+      document.body.removeChild(wrapper);
+
+      // Convert the canvas into a PNG and generate the PDF
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+        unit: "px",
+        format: [canvas.width, canvas.height],
+      });
+
+      // Add the image to the PDF
       pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
       pdf.save("screenshot.pdf");
     } catch (error) {
